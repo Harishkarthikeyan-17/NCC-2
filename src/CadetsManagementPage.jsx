@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useRef } from 'react';
+import CadetProfileModal from './components/CadetProfileModal';
 
 /**
  * CadetsManagementPage Component - Vertical Flow Edition
  * 
  * Layout:
  * 1. Summary Cards (Horizontal)
- * 2. Selected Cadet Details (Full Width, Conditional)
- * 3. Cadet List (Full Width, Scrollable)
+ * 2. Selected Cadet Details (Full Width, Conditional) - REPLACED BY MODAL
+ * 3. Cadet List (Full Width, Scrollable, Year-grouped)
  */
 
 const CadetsManagementPage = () => {
@@ -17,7 +18,7 @@ const CadetsManagementPage = () => {
       rank: 'CUO',
       name: 'John Doe',
       regNo: 'TN/2021/SDA/123456',
-      year: '3rd',
+      year: '3rd Year',
       performance: 'Excellent',
       campsAttended: 'RDC, CATC',
       attendanceReport: '95%',
@@ -30,7 +31,7 @@ const CadetsManagementPage = () => {
       rank: 'SGT',
       name: 'Jane Smith',
       regNo: 'TN/2022/SWA/654321',
-      year: '2nd',
+      year: '2nd Year',
       performance: 'Good',
       campsAttended: 'ALC, ATC',
       attendanceReport: '88%',
@@ -43,7 +44,7 @@ const CadetsManagementPage = () => {
       rank: 'CDT',
       name: 'Robert Brown',
       regNo: 'TN/2023/SDA/789012',
-      year: '1st',
+      year: '1st Year',
       performance: 'Average',
       campsAttended: 'ATC',
       attendanceReport: '82%',
@@ -54,20 +55,28 @@ const CadetsManagementPage = () => {
   ]);
 
   const [selectedCadetId, setSelectedCadetId] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const detailsRef = useRef(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // --- Derived State ---
   const yearCounts = useMemo(() => {
     return cadets.reduce(
       (acc, cadet) => {
-        if (cadet.year === '1st') acc.first++;
-        else if (cadet.year === '2nd') acc.second++;
-        else if (cadet.year === '3rd') acc.third++;
+        if (cadet.year === '1st Year') acc.first++;
+        else if (cadet.year === '2nd Year') acc.second++;
+        else if (cadet.year === '3rd Year') acc.third++;
         return acc;
       },
       { first: 0, second: 0, third: 0 }
     );
+  }, [cadets]);
+
+  const groupedCadets = useMemo(() => {
+    return {
+      '1st Year': cadets.filter(c => c.year === '1st Year'),
+      '2nd Year': cadets.filter(c => c.year === '2nd Year'),
+      '3rd Year': cadets.filter(c => c.year === '3rd Year'),
+    };
   }, [cadets]);
 
   const selectedCadet = useMemo(
@@ -79,7 +88,7 @@ const CadetsManagementPage = () => {
   const handleAddCadet = (newCadet) => {
     const id = cadets.length > 0 ? Math.max(...cadets.map((c) => c.id)) + 1 : 1;
     setCadets([...cadets, { ...newCadet, id }]);
-    setIsModalOpen(false);
+    setIsAddModalOpen(false);
   };
 
   const handleDeleteCadet = (id, e) => {
@@ -90,9 +99,7 @@ const CadetsManagementPage = () => {
 
   const handleSelectCadet = (id) => {
     setSelectedCadetId(id);
-    setTimeout(() => {
-      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+    setIsProfileModalOpen(true);
   };
 
   return (
@@ -101,7 +108,7 @@ const CadetsManagementPage = () => {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Cadets Management</h1>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setIsAddModalOpen(true)}
           className="bg-[#6C00A6] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#5A008A] transition-all shadow-md active:scale-95"
         >
           + Add Cadet
@@ -116,70 +123,52 @@ const CadetsManagementPage = () => {
       </div>
 
       <div className="flex flex-col gap-8">
-        {/* 2. Selected Cadet Details Section (Full Width, Conditional) */}
-        {selectedCadet && (
-          <div ref={detailsRef} className="w-full bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="p-6 border-l-8 border-[#6C00A6] bg-purple-50/30">
-              <div className="flex items-center gap-4">
-                <div className="bg-[#6C00A6] text-white p-4 rounded-xl font-bold text-2xl uppercase">
-                  {selectedCadet.rank}
-                </div>
-                <div>
-                  <h2 className="text-3xl font-bold">{selectedCadet.name}</h2>
-                  <p className="text-gray-500 font-mono">{selectedCadet.regNo}</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-8 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <DetailSection label="Year" value={`${selectedCadet.year} Year`} />
-                <DetailSection label="Performance" value={selectedCadet.performance} />
-                <DetailSection label="Camps Attended" value={selectedCadet.campsAttended} />
-                <DetailSection label="Attendance Report" value={selectedCadet.attendanceReport} />
-                <DetailSection label="College CGPA" value={selectedCadet.collegeCGPA} />
-              </div>
-              <hr className="border-gray-100" />
-              <div className="grid grid-cols-1 gap-8">
-                <DetailSection fullWidth label="Technical / Non-Technical Achievements" value={selectedCadet.achievements} />
-                <hr className="border-gray-100" />
-                <DetailSection fullWidth label="Admin Remarks" value={selectedCadet.adminRemarks} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 3. Cadets List Section (Full Width) */}
+        {/* 2. Cadets List Section (Full Width) */}
         <div className="w-full bg-white rounded-xl shadow-soft border border-gray-100 overflow-hidden flex flex-col">
           <div className="p-4 border-b border-gray-100 bg-gray-50/50">
             <h2 className="font-bold text-lg">Cadet Roster</h2>
           </div>
-          <div className="max-h-[600px] overflow-y-auto p-6 space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              {cadets.map((cadet) => (
-                <div
-                  key={cadet.id}
-                  onClick={() => handleSelectCadet(cadet.id)}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 relative group ${selectedCadetId === cadet.id
-                    ? 'border-[#6C00A6] bg-purple-50 shadow-md'
-                    : 'border-transparent bg-white hover:bg-purple-50 hover:border-purple-100 shadow-sm'
-                    }`}
-                >
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-[#6C00A6] uppercase tracking-wider mb-1">{cadet.rank}</span>
-                    <span className="text-lg font-bold truncate">{cadet.name}</span>
-                    <span className="text-xs text-gray-500 font-mono">{cadet.regNo}</span>
-                  </div>
-                  <button
-                    onClick={(e) => handleDeleteCadet(cadet.id, e)}
-                    className="absolute top-4 right-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 p-1 rounded"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+
+          <div className="max-h-[800px] overflow-y-auto p-6 space-y-12">
+            {Object.entries(groupedCadets).map(([year, yearCadets]) => (
+              <div key={year} className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-xl font-bold text-gray-800 whitespace-nowrap">{year} Cadets</h3>
+                  <div className="h-[2px] w-full bg-gray-100 rounded-full"></div>
                 </div>
-              ))}
-            </div>
+
+                {yearCadets.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {yearCadets.map((cadet) => (
+                      <div
+                        key={cadet.id}
+                        onClick={() => handleSelectCadet(cadet.id)}
+                        className="p-4 rounded-xl border-2 border-transparent bg-white hover:bg-purple-50 hover:border-purple-100 shadow-sm cursor-pointer transition-all duration-300 relative group"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-[#6C00A6] uppercase tracking-wider mb-1">{cadet.rank}</span>
+                          <span className="text-lg font-bold truncate">{cadet.name}</span>
+                          <span className="text-xs text-gray-500 font-mono">{cadet.regNo}</span>
+                        </div>
+                        <button
+                          onClick={(e) => handleDeleteCadet(cadet.id, e)}
+                          className="absolute top-4 right-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 p-1 rounded"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-8 border-2 border-dashed border-gray-100 rounded-2xl text-center text-gray-400">
+                    <p>No cadets registered for {year}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+
             {cadets.length === 0 && (
               <div className="text-center py-12 text-gray-400">
                 <p className="text-xl font-medium">No cadets found.</p>
@@ -191,10 +180,18 @@ const CadetsManagementPage = () => {
       </div>
 
       {/* Add Cadet Modal */}
-      {isModalOpen && (
+      {isAddModalOpen && (
         <AddCadetModal
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => setIsAddModalOpen(false)}
           onSubmit={handleAddCadet}
+        />
+      )}
+
+      {/* Profile Detail Modal */}
+      {isProfileModalOpen && selectedCadet && (
+        <CadetProfileModal
+          cadet={selectedCadet}
+          onClose={() => setIsProfileModalOpen(false)}
         />
       )}
     </div>
@@ -210,19 +207,12 @@ const SummaryCard = ({ title, count }) => (
   </div>
 );
 
-const DetailSection = ({ label, value, fullWidth = false }) => (
-  <div className={fullWidth ? "col-span-full" : ""}>
-    <h3 className="text-xs font-bold text-[#6C00A6] uppercase tracking-widest mb-1">{label}</h3>
-    <p className="text-gray-800 text-lg font-medium">{value || 'N/A'}</p>
-  </div>
-);
-
 const AddCadetModal = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     rank: '',
     name: '',
     regNo: '',
-    year: '1st',
+    year: '1st Year',
     performance: '',
     campsAttended: '',
     attendanceReport: '',
@@ -265,9 +255,9 @@ const AddCadetModal = ({ onClose, onSubmit }) => {
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6C00A6] focus:border-[#6C00A6] outline-none transition-all"
               >
-                <option value="1st">1st Year</option>
-                <option value="2nd">2nd Year</option>
-                <option value="3rd">3rd Year</option>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
               </select>
             </div>
             <InputField label="Performance" name="performance" value={formData.performance} onChange={handleChange} />
@@ -331,3 +321,4 @@ const InputField = ({ label, name, value, onChange, required = false, type = 'te
 );
 
 export default CadetsManagementPage;
+
