@@ -57,6 +57,7 @@ const CadetsManagementPage = () => {
   const [selectedCadetId, setSelectedCadetId] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [selectedYear, setSelectedYear] = useState('all');
 
   // --- Derived State ---
   const yearCounts = useMemo(() => {
@@ -78,6 +79,12 @@ const CadetsManagementPage = () => {
       '3rd Year': cadets.filter(c => c.year === '3rd Year'),
     };
   }, [cadets]);
+
+  const filteredGroupedCadets = useMemo(() => {
+    if (selectedYear === 'all') return groupedCadets;
+    const key = selectedYear === '1' ? '1st Year' : selectedYear === '2' ? '2nd Year' : '3rd Year';
+    return { [key]: groupedCadets[key] ?? [] };
+  }, [groupedCadets, selectedYear]);
 
   const selectedCadet = useMemo(
     () => cadets.find((c) => c.id === selectedCadetId),
@@ -122,6 +129,27 @@ const CadetsManagementPage = () => {
         <SummaryCard title="3rd Year Cadets Count" count={yearCounts.third} />
       </div>
 
+      {/* Year Filter Navbar */}
+      <div className="flex flex-wrap justify-center gap-3 mb-6">
+        {[
+          { label: 'All', value: 'all' },
+          { label: 'First Year', value: '1' },
+          { label: 'Second Year', value: '2' },
+          { label: 'Third Year', value: '3' },
+        ].map(({ label, value }) => (
+          <button
+            key={value}
+            onClick={() => setSelectedYear(value)}
+            className={`px-5 py-2 rounded-full font-semibold text-sm transition-all duration-200 active:scale-95 ${selectedYear === value
+                ? 'bg-[#6C00A6] text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-purple-100 hover:text-[#6C00A6]'
+              }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col gap-8">
         {/* 2. Cadets List Section (Full Width) */}
         <div className="w-full bg-white rounded-xl shadow-soft border border-gray-100 overflow-hidden flex flex-col">
@@ -130,7 +158,7 @@ const CadetsManagementPage = () => {
           </div>
 
           <div className="max-h-[800px] overflow-y-auto p-6 space-y-12">
-            {Object.entries(groupedCadets).map(([year, yearCadets]) => (
+            {Object.entries(filteredGroupedCadets).map(([year, yearCadets]) => (
               <div key={year} className="space-y-4">
                 <div className="flex items-center gap-4">
                   <h3 className="text-xl font-bold text-gray-800 whitespace-nowrap">{year} Cadets</h3>
